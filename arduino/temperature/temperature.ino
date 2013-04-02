@@ -14,6 +14,7 @@
  * phase, but we've generally found you can get within a degree or two.
  * 
  * Ground <---/\/\/ 50k ohm /\/\---> A0 <--- /\/\/ NTC 503 /\/\-> +5V
+ # Ground <---/\/\/ 10k ohm /\/\---> A0 <--- /\/\/ NTCLE203E3103HB0 /\/\-> +5V
  * 
  * To get the output this design also assumes that you have, a series
  * of 9 LEDS connected to digital pins 2-10 inclusive, wired in series
@@ -123,13 +124,13 @@
  * R is the anticipated resistance
  */ 
 
-const float B = 2700;
+const float B = 3977;
 const float R0 = 50000;
 const float T0 = 298.15;
 const float expected_resistance = R0 * exp(B * (1/273.15 - 1/T0));
 
 /* If you change the pulldown resistors change this. */
-const float pulldown_resistance = 50000;
+const float pulldown_resistance = 10000;
 
 /* If reverse the direction of the resistors and sensor, you have
  * what's called a pull up, not pull down.  Set this to true. 
@@ -191,7 +192,8 @@ void setBit(int bit, boolean value) {
 
 
 /* Given a sensor value and the resistance of the pulldown resistor
-   compute the sensed resistance */
+ *  compute the sensed resistance 
+ */
 
 float compute_resistance(int value, float pulldown_resistance) {
   if (using_pullups)
@@ -286,9 +288,13 @@ void write(unsigned int i) {
   setBit(6, i & 64);
   setBit(7, i & 32);
   setBit(8, i & 16);
-  }
+}
 
 
+/* Take temp_samples samples of the pin THERMOMETER
+ * 
+ * Returns: the average of total readings
+ */
 int measure_temperature() {
   int i;
   int sum = 0;
