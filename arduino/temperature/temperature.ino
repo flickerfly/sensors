@@ -44,13 +44,13 @@
  * The second step is to apply any calibration factor we might have.
  * THe "base resistance" of the sensor in the Radioshack kit is 5%,
  * this can result in a change of a few degrees, expecially in the
- * higher temperatures.  GE 503's also vary in theor "B" value - that
+ * higher temperatures.  GE 503's also vary in their "B" value - that
  * is the rate at which they respond to temperature changes.  We don't
  * at this time try to calibrate that, but might in the future.
  * 
  * 
- * We generate a "correction factor" that we multiple our computed
- * resistance by.  The foruma for this is:
+ * We generate a "correction factor" that we multiply our computed
+ * resistance by.  The formula for this is:
  * 
  * C = Rexp / Rcal
  * 
@@ -110,6 +110,12 @@
 */
 
 #include <EEPROM.h>
+#include "Wire.h"
+#include "LiquidCrystal.h"
+
+// Connect via i2c, default address #0 (A0-A2 not jumpered)
+LiquidCrystal lcd(0);
+int count = 0;
 
 #define THERMOMETER 0
 #define SET_LOW 12
@@ -125,7 +131,7 @@
  */ 
 
 const float B = 3977;
-const float R0 = 10000;
+const float R0 = 32554;
 const float T0 = 298.15;
 const float expected_resistance = R0 * exp(B * (1/273.15 - 1/T0));
 
@@ -176,6 +182,11 @@ void setup()
   digitalWrite(11, HIGH);
   digitalWrite(12, HIGH);
     
+  // set up the LCD's number of rows and columns: 
+  lcd.begin(20, 4);
+  // Print a message to the LCD.
+  lcd.print("I'm Energized.");
+  lcd.setBacklight(HIGH);    
 }
 
 /* Set one of the bits in the display 
@@ -205,6 +216,7 @@ float compute_resistance(int value, float pulldown_resistance) {
  * return the temperature in kelvin.
  */ 
 float compute_temperature(float resistance, float R0, float T0, float B) {
+   Serial.println("");
    Serial.println("Compute temperature");
    Serial.print("Resistance: ");
    Serial.println(resistance);
@@ -258,6 +270,7 @@ void write(unsigned int i) {
   Serial.print("Temp: ");
   Serial.print((i * 9.0 - 80.0 ) / 20.0);
   Serial.println("F");
+  
   Serial.print("Encoded value: ");
   Serial.println(i);
 
@@ -290,6 +303,26 @@ void write(unsigned int i) {
   setBit(8, i & 16);
 }
 
+/* 
+ * Show the current temperature on the LCD Display
+ */
+
+void display(unsigned int k) {
+  unsigned int c = k - 273.15;
+  unsigned int f = (c * 9.0)/ 5.0 + 32.0;
+
+  lcd.setCursor(0,0);
+  lcd.print("Temperature     ");
+  lcd.setCursor(0,1);
+  lcd.print(f);
+  lcd.print("F    ");
+  lcd.setCursor(0,2);
+  lcd.print(c);
+  lcd.print("C    ");
+  lcd.setCursor(0,3);
+  lcd.print(k); 
+  lcd.print("K    ");
+}
 
 /* Take temp_samples samples of the pin THERMOMETER
  * 
@@ -306,8 +339,8 @@ int measure_temperature() {
 
 float temp_as_k(int value) {
   float temp = compute_temperature(compute_resistance(value, pulldown_resistance));
-  Serial.print("Resistance: ");
-  Serial.println(compute_resistance(value, pulldown_resistance));
+  //Serial.print("Resistance: ");
+  //Serial.println(compute_resistance(value, pulldown_resistance));
   Serial.print("Value: ");
   Serial.println(value);
   Serial.print("Kelvin: ");
@@ -322,10 +355,16 @@ void loop() {
   int no=0;
   int listen_count;
 
+  int value = measure_temperature();
+  int value_k = temp_as_k(value);
+
   // Our LED array can emit values in the range [0, 239].  Our
   // temperature will be in units of 0.25 celcius with zero and -20c.  This
   // will give us a range from [-20, 39.75] celcius.
-  write((temp_as_k(measure_temperature()) -273.15 + 20) * 4.0);
+  write((value_k -273.15 + 20) * 4.0);
+
+  // Our LCD display needs some input
+  display(value_k);
   delay(10000);
 }
 
