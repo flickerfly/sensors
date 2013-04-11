@@ -131,7 +131,7 @@ int count = 0;
  */ 
 
 const float B = 3977;
-const float R0 = 32554;
+const float R0 = 10000;
 const float T0 = 298.15;
 const float expected_resistance = R0 * exp(B * (1/273.15 - 1/T0));
 
